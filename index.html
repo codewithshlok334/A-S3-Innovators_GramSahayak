@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GramSahayak - AI Powered</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Marathi:wght@400;500;700&display=swap');
+        
+        :root {
+            --md-sys-color-primary: #2D6A4F;
+            --md-sys-color-surface: #fcfdf6;
+        }
+
+        body { 
+            font-family: 'Noto Sans Devanagari', sans-serif; 
+            background-color: var(--md-sys-color-surface);
+            color: #1a1c18;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        .activity {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--md-sys-color-surface);
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        .activity.active { display: block; animation: activityIn 0.3s ease-out; }
+
+        @keyframes activityIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .app-bar {
+            position: sticky;
+            top: 0;
+            background: var(--md-sys-color-surface);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            border-bottom: 1px solid #dfe4d7;
+            flex-wrap: wrap;
+        }
+
+        .card-material {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 8px 16px;
+            border: 1px solid #dfe4d7;
+            transition: transform 0.1s;
+        }
+
+        .card-material:active { transform: scale(0.98); background: #f0f3e8; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 70px;
+            background: #f0f3e8;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #dfe4d7;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            color: #43493e;
+            background: none;
+            border: none;
+            width: 64px;
+            cursor: pointer;
+        }
+
+        .nav-btn.active { color: #2D6A4F; font-weight: bold; }
+
+        .ai-badge {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .chat-bubble {
+            padding: 12px;
+            border-radius: 12px;
+            margin: 8px 0;
+            max-width: 90%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .ai-msg { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; align-self: flex-start; }
+        .user-msg { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; align-self: flex-end; margin-left: auto; }
+
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60% { content: '...'; } 80%, 100% { content: ''; } }
+
+        select.lang-select {
+            padding: 4px 8px;
+            border-radius: 20px;
+            border: 1px solid #2D6A4F;
+            background: white;
+            font-size: 14px;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MainActivity -->
+    <div id="MainActivity" class="activity active">
+        <div class="app-bar">
+            <h1 class="text-xl font-bold text-green-900" data-i18n="appName">GramSahayak</h1>
+            <select id="langSelector" class="lang-select">
+                <option value="hi">हिंदी</option>
+                <option value="en">English</option>
+                <option value="ta">தமிழ்</option>
+                <option value="te">తెలుగు</option>
+                <option value="bn">বাংলা</option>
+                <option value="mr">मराठी</option>
+                <option value="gu">ગુજરાતી</option>
+            </select>
+        </div>
+        
+        <!-- Weather Card -->
+        <div class="card-material bg-green-50" onclick="startActivity('WeatherActivity')">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs font-bold text-green-700 uppercase tracking-tighter" data-i18n="weatherUpdate">मौसम अपडेट</p>
+                    <p class="text-xl font-bold" id="weatherTemp">32°C • साफ़ आसमान</p>
+                    <p class="text-xs text-gray-500" id="weatherLocation">वाराणसी, उत्तर प्रदेश</p>
+                </div>
+                <span class="text-4xl" id="weatherIcon">☀️</span>
+            </div>
+        </div>
+
+        <div class="px-4 py-2 mt-4">
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-widest" data-i18n="mainServices">मुख्य सेवाएं</h2>
+        </div>
+
+        <div class="grid grid-cols-2 gap-0">
+            <div class="card-material flex flex-col items-center py-6" onclick="startActivity('CropActivity')">
+                <div class="ai-badge" data-i18n="new">✨ NEW</div>
+                <span class="text-3xl mb-2">🌾</span>
+                <span class="font-bold" data-i18n="cropAdvisory">फसल सलाह</span>
+            </div>
+            <div class="card-material flex flex-col items-center py-6" onclick="startActivity('SchemesActivity')">
+                <div class="ai-badge" data-i18n="new">✨ NEW</div>
+                <span class="text-3xl mb-2">📜</span>
+                <span class="font-bold" data-i18n="schemes">योजनाएं</span>
+            </div>
+            <div class="card-material flex flex-col items-center py-6" onclick="startActivity('HealthActivity')">
+                <span class="text-3xl mb-2">🏥</span>
+                <span class="font-bold" data-i18n="health">स्वास्थ्य</span>
+            </div>
+            <div class="card-material flex flex-col items-center py-6" onclick="startActivity('LoansActivity')">
+                <span class="text-3xl mb-2">💰</span>
+                <span class="font-bold" data-i18n="loans">लोन/बैंक</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Feature Activity -->
+    <div id="AIActivity" class="activity">
+        <div class="app-bar">
+            <button onclick="onBackPressed()" class="text-2xl p-2">←</button>
+            <h1 class="text-xl font-bold" id="ai-title" data-i18n="aiAssistant">✨ AI Assistant</h1>
+            <select id="langSelectorAI" class="lang-select" style="margin-left:auto;">
+                <option value="hi">हिंदी</option>
+                <option value="en">English</option>
+                <option value="ta">தமிழ்</option>
+                <option value="te">తెలుగు</option>
+                <option value="bn">বাংলা</option>
+                <option value="mr">मराठी</option>
+                <option value="gu">ગુજરાતી</option>
+            </select>
+        </div>
+        <div class="p-4 flex flex-col min-h-full">
+            <div id="ai-chat-history" class="flex-grow flex flex-col">
+                <div class="chat-bubble ai-msg" id="ai-intro-text" data-i18n="aiIntro">नमस्ते! मैं आपका ग्रामसहायक AI हूँ। अपनी समस्या नीचे लिखें।</div>
+            </div>
+            
+            <div class="mt-4 pb-10">
+                <textarea id="ai-input" class="w-full p-4 border rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none h-24" placeholder="यहाँ लिखें..."></textarea>
+                <button id="ai-submit-btn" class="w-full mt-2 bg-indigo-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2">
+                    ✨ <span data-i18n="analyze">विश्लेषण करें (Analyze)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Detail View -->
+    <div id="DetailView" class="activity">
+        <div class="app-bar">
+            <button onclick="onBackPressed()" class="text-2xl p-2">←</button>
+            <h1 class="text-xl font-bold" id="detail-title">Activity</h1>
+            <select id="langSelectorDetail" class="lang-select" style="margin-left:auto;">
+                <option value="hi">हिंदी</option>
+                <option value="en">English</option>
+                <option value="ta">தமிழ்</option>
+                <option value="te">తెలుగు</option>
+                <option value="bn">বাংলা</option>
+                <option value="mr">मराठी</option>
+                <option value="gu">ગુજરાતી</option>
+            </select>
+        </div>
+        <div id="detail-content" class="p-4"></div>
+    </div>
+
+    <!-- WeatherActivity -->
+    <div id="WeatherActivity" class="activity">
+        <div class="app-bar">
+            <button onclick="onBackPressed()" class="text-2xl p-2">←</button>
+            <h1 class="text-xl font-bold" data-i18n="weatherInfo">मौसम की जानकारी</h1>
+            <select id="langSelectorWeather" class="lang-select" style="margin-left:auto;">
+                <option value="hi">हिंदी</option>
+                <option value="en">English</option>
+                <option value="ta">தமிழ்</option>
+                <option value="te">తెలుగు</option>
+                <option value="bn">বাংলা</option>
+                <option value="mr">मराठी</option>
+                <option value="gu">ગુજરાતી</option>
+            </select>
+        </div>
+        <div class="p-4">
+            <div class="card-material !mx-0 text-center py-10 bg-blue-50">
+                <p class="text-5xl mb-4" id="weatherIconBig">☀️</p>
+                <p class="text-4xl font-bold" id="weatherTempBig">32°C</p>
+                <p class="text-gray-600" id="weatherDesc">साफ़ और धूप</p>
+                <p class="text-sm text-gray-500 mt-2" id="weatherLocationBig">वाराणसी, उत्तर प्रदेश</p>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-2xl border">
+                    <p class="text-xs text-gray-500" data-i18n="humidity">नमी (Humidity)</p>
+                    <p class="font-bold" id="weatherHumidity">45%</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border">
+                    <p class="text-xs text-gray-500" data-i18n="windSpeed">हवा की गति</p>
+                    <p class="font-bold" id="weatherWind">12 km/h</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchMainTab('MainActivity', this)">
+            <span class="text-2xl">🏠</span>
+            <span data-i18n="home">होम</span>
+        </button>
+        <button class="nav-btn" onclick="startActivity('AI_Assistant')">
+            <span class="text-2xl">✨</span>
+            <span data-i18n="aiAssistantShort">AI सहायक</span>
+        </button>
+    </nav>
+
+    <script>
+        // ==================== CONFIG ====================
+        async function sendMessage(prompt) {
+    const response = await fetch("http://localhost:5000/api/chat", ... {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            prompt: prompt
+        })
+    });
+
+    const data = await response.json();
+    console.log(data.reply);
+}
+async function getWeather(lat, lon) {
+    const response = await fetch(
+        `http://127.0.0.1:5000/api/weather?lat=${lat}&lon=${lon}`
+    );
+
+    const data = await response.json();
+    console.log(data);
+} // ← यहाँ अपनी Gemini API कुंजी डालें
+
+        // ==================== MULTI-LANGUAGE SUPPORT ====================
+        const translations = {
+            en: {
+                appName: "GramSahayak",
+                weatherUpdate: "Weather Update",
+                mainServices: "Main Services",
+                new: "✨ NEW",
+                cropAdvisory: "Crop Advisory",
+                schemes: "Schemes",
+                health: "Health",
+                loans: "Loans/Bank",
+                aiAssistant: "✨ AI Assistant",
+                aiIntro: "Hello! I am your GramSahayak AI. Write your problem below.",
+                analyze: "Analyze",
+                weatherInfo: "Weather Info",
+                humidity: "Humidity",
+                windSpeed: "Wind Speed",
+                home: "Home",
+                aiAssistantShort: "AI Assistant",
+                back: "Back",
+                clearSky: "Clear Sky",
+                clouds: "Clouds",
+                rain: "Rain",
+            },
+            hi: {
+                appName: "ग्रामसहायक",
+                weatherUpdate: "मौसम अपडेट",
+                mainServices: "मुख्य सेवाएं",
+                new: "✨ नया",
+                cropAdvisory: "फसल सलाह",
+                schemes: "योजनाएं",
+                health: "स्वास्थ्य",
+                loans: "लोन/बैंक",
+                aiAssistant: "✨ AI सहायक",
+                aiIntro: "नमस्ते! मैं आपका ग्रामसहायक AI हूँ। अपनी समस्या नीचे लिखें।",
+                analyze: "विश्लेषण करें",
+                weatherInfo: "मौसम की जानकारी",
+                humidity: "नमी",
+                windSpeed: "हवा की गति",
+                home: "होम",
+                aiAssistantShort: "AI सहायक",
+                back: "वापस",
+                clearSky: "साफ़ आसमान",
+                clouds: "बादल",
+                rain: "बारिश",
+            },
+            ta: {
+                appName: "கிராமசஹாயக்",
+                weatherUpdate: "வானிலை புதுப்பிப்பு",
+                mainServices: "முக்கிய சேவைகள்",
+                new: "✨ புதியது",
+                cropAdvisory: "பயிர் ஆலோசனை",
+                schemes: "திட்டங்கள்",
+                health: "சுகாதாரம்",
+                loans: "கடன்/வங்கி",
+                aiAssistant: "✨ AI உதவியாளர்",
+                aiIntro: "வணக்கம்! நான் உங்கள் கிராமசஹாயக் AI. உங்கள் பிரச்சனையை கீழே எழுதுங்கள்.",
+                analyze: "பகுப்பாய்வு",
+                weatherInfo: "வானிலை தகவல்",
+                humidity: "ஈரப்பதம்",
+                windSpeed: "காற்றின் வேகம்",
+                home: "முகப்பு",
+                aiAssistantShort: "AI உதவியாளர்",
+                back: "பின்",
+                clearSky: "தெளிந்த வானம்",
+                clouds: "மேகங்கள்",
+                rain: "மழை",
+            },
+            // ... other languages as before ...
+        };
+
+        let currentLanguage = 'hi';
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerText = translations[lang][key];
+                } else if (translations.en[key]) {
+                    el.innerText = translations.en[key];
+                }
+            });
+            // Update AI title if on AI page
+            const aiTitle = document.getElementById('ai-title');
+            if (aiTitle && translations[lang] && translations[lang].aiAssistant) {
+                aiTitle.innerText = translations[lang].aiAssistant;
+            }
+        }
+
+        function syncLanguageSelectors(lang) {
+            document.querySelectorAll('.lang-select').forEach(sel => sel.value = lang);
+        }
+
+        document.querySelectorAll('.lang-select').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const lang = e.target.value;
+                setLanguage(lang);
+                syncLanguageSelectors(lang);
+            });
+        });
+
+        // ==================== REAL-TIME WEATHER ====================
+        function getWeatherDescription(weatherId, lang) {
+            if (weatherId >= 200 && weatherId < 600) return translations[lang]?.rain || 'Rain';
+            if (weatherId >= 600 && weatherId < 700) return 'Snow';
+            if (weatherId >= 700 && weatherId < 800) return 'Haze';
+            if (weatherId === 800) return translations[lang]?.clearSky || 'Clear Sky';
+            if (weatherId > 800) return translations[lang]?.clouds || 'Clouds';
+            return 'Unknown';
+        }
+
+        function updateWeatherUI(data, locationName) {
+            const temp = Math.round(data.main.temp);
+            const humidity = data.main.humidity;
+            const wind = data.wind.speed;
+            const weatherId = data.weather[0].id;
+            const icon = data.weather[0].icon;
+
+            document.getElementById('weatherTemp').innerText = `${temp}°C • ${getWeatherDescription(weatherId, currentLanguage)}`;
+            document.getElementById('weatherLocation').innerText = locationName;
+            document.getElementById('weatherIcon').innerText = getWeatherEmoji(icon);
+            document.getElementById('weatherTempBig').innerText = `${temp}°C`;
+            document.getElementById('weatherDesc').innerText = getWeatherDescription(weatherId, currentLanguage);
+            document.getElementById('weatherLocationBig').innerText = locationName;
+            document.getElementById('weatherHumidity').innerText = `${humidity}%`;
+            document.getElementById('weatherWind').innerText = `${wind} km/h`;
+            document.getElementById('weatherIconBig').innerText = getWeatherEmoji(icon);
+        }
+
+        function getWeatherEmoji(iconCode) {
+            const map = {
+                '01d': '☀️', '01n': '🌙',
+                '02d': '⛅', '02n': '☁️',
+                '03d': '☁️', '03n': '☁️',
+                '04d': '☁️', '04n': '☁️',
+                '09d': '🌧️', '09n': '🌧️',
+                '10d': '🌦️', '10n': '🌧️',
+                '11d': '⛈️', '11n': '⛈️',
+                '13d': '❄️', '13n': '❄️',
+                '50d': '🌫️', '50n': '🌫️',
+            };
+            return map[iconCode] || '☀️';
+        }
+
+        function fetchWeather(lat, lon) {
+    fetch(`http://127.0.0.1:5000/api/weather?lat=${lat}&lon=${lon}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.cod === 200) {
+                updateWeatherUI(data, data.name + ', ' + (data.sys.country || ''));
+            } else {
+                throw new Error(data.message || 'Weather error');
+            }
+        })
+        .catch(err => {
+            console.error("Weather fetch error:", err);
+            // fallback dummy data
+            updateWeatherUI({
+                main: { temp: 30, humidity: 50 },
+                wind: { speed: 10 },
+                weather: [{ id: 800, icon: '01d' }]
+            }, "Varanasi, UP");
+        });
+
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`;
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.cod === 200) {
+                        const locationName = data.name + ', ' + (data.sys.country || '');
+                        updateWeatherUI(data, locationName);
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error("Weather fetch error:", err);
+                    updateWeatherUI({
+                        main: { temp: 30, humidity: 50 },
+                        wind: { speed: 10 },
+                        weather: [{ id: 800, icon: '01d' }]
+                    }, "Varanasi, UP");
+                });
+        }
+
+        function getLocationAndWeather() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        fetchWeather(lat, lon);
+                    },
+                    (error) => {
+                        console.warn("Geolocation error:", error.message);
+                        fetchWeather(25.3176, 82.9739);
+                    }
+                );
+            } else {
+                fetchWeather(25.3176, 82.9739);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            getLocationAndWeather();
+        });
+
+        // ==================== APP NAVIGATION & DETAILED CROP DATA ====================
+        let activityStack = ['MainActivity'];
+        let currentAiMode = 'general';
+
+        const pageData = {
+            'CropActivity': { 
+                title: 'फसल सलाह', 
+                items: [
+                    { name: '✨ AI फसल निदान (Diagnosis)', isAi: true, mode: 'crop', welcome: 'अपनी फसल की समस्या बताएं (जैसे: पत्तियां पीली, कीड़े लगे) ✨' },
+                    // ---------- गेहूं (Wheat) - विस्तृत जानकारी ----------
+                    { name: '🌾 गेहूं (Wheat) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🌾 गेहूं की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> ठंडी जलवायु, तापमान 15°C – 25°C (बुवाई), कटाई के समय 25°C – 30°C [citation:4].</p>
+                            <p><span class="font-semibold">मिट्टी:</span> दोमट या चिकनी दोमट मिट्टी सबसे उपयुक्त, pH 6.5 – 7.5 [citation:4].</p>
+                            <p><span class="font-semibold">भूमि की तैयारी:</span> 2-3 बार जुताई करके खेत समतल करें [citation:4].</p>
+                            <p><span class="font-semibold">उन्नत किस्में:</span> HD 2967 (अधिक उपज), HD 3086 (रोग प्रतिरोधी), PBW 550 (पंजाब/हरियाणा), HI 1544 (सूखा सहनशील) [citation:4].</p>
+                            <p><span class="font-semibold">बीज उपचार:</span> कार्बेन्डाजिम + थायरम 2-3 ग्राम प्रति किलो बीज [citation:4].</p>
+                            <p><span class="font-semibold">बीज की मात्रा:</span> 100-125 किलो/हेक्टेयर (सामान्य), ड्रिल बुवाई में 80-100 किलो [citation:4].</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> उत्तरी भारत में 15 अक्टूबर – 15 नवंबर [citation:4].</p>
+                            <p><span class="font-semibold">बुवाई का तरीका:</span> लाइन से बुवाई (20-22 सेमी दूरी), बीज की गहराई 4-5 सेमी [citation:4].</p>
+                            <p><span class="font-semibold">खाद एवं उर्वरक:</span> नाइट्रोजन 120 kg/ha, फॉस्फोरस 60 kg/ha, पोटाश 40 kg/ha. 50% नाइट्रोजन + पूरा P+K बुवाई के समय, शेष नाइट्रोजन पहली व दूसरी सिंचाई के समय [citation:4].</p>
+                            <p><span class="font-semibold">सिंचाई कार्यक्रम:</span> 20-25 दिन (टिलरिंग), 40-45 दिन (गाँठ), 60-65 दिन (बालियाँ), 80-85 दिन (दाना भरना) पर सिंचाई करें [citation:4].</p>
+                            <p><span class="font-semibold">खरपतवार नियंत्रण:</span> बुवाई के 25-30 दिन बाद 2,4-D 500 ग्राम प्रति हेक्टेयर का छिड़काव [citation:4].</p>
+                            <p><span class="font-semibold">कटाई एवं भण्डारण:</span> जब दाना कठोर हो जाए, नमी 12% से कम हो, तब कटाई करें। भंडारण में नीम की पत्तियाँ डालें [citation:4].</p>
+                        </div>
+                    `},
+                    // ---------- धान (Rice) - विस्तृत जानकारी ----------
+                    { name: '🌾 धान (Rice) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🌾 धान की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> खरीफ मौसम, मानसून पर निर्भर। अधिक नमी और गर्मी आवश्यक [citation:2].</p>
+                            <p><span class="font-semibold">मिट्टी:</span> चिकनी दोमट मिट्टी जिसमें जलधारण क्षमता अधिक हो [citation:2].</p>
+                            <p><span class="font-semibold">भूमि की तैयारी:</span> खेत की जुताई करें, पाड़ करें (पानी भरकर खरपतवार नष्ट करें), बीज क्यारी तैयार करें [citation:2].</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> जून-जुलाई (मानसून आने पर) [citation:2].</p>
+                            <p><span class="font-semibold">रोपाई का समय:</span> बुवाई के 30-45 दिन बाद, जुलाई मध्य से अगस्त अंत [citation:2].</p>
+                            <p><span class="font-semibold">बीज उपचार:</span> बीजों को कवकनाशक से उपचारित करें या धूप में 3-4 दिन सुखाएं [citation:2].</p>
+                            <p><span class="font-semibold">रोपाई की दूरी:</span> पंक्तियों के बीच 20-25 सेमी, पौधों के बीच 10-15 सेमी [citation:2].</p>
+                            <p><span class="font-semibold">सिंचाई:</span> खेत में 5-7 सेमी पानी का स्तर बनाए रखें [citation:2].</p>
+                            <p><span class="font-semibold">खाद:</span> नाइट्रोजन, फॉस्फोरस, पोटाश की संतुलित मात्रा आवश्यक [citation:2].</p>
+                            <p><span class="font-semibold">खरपतवार नियंत्रण:</span> निराई-गुड़ाई या रासायनिक खरपतवारनाशक का प्रयोग [citation:2].</p>
+                            <p><span class="font-semibold">कटाई:</span> जब दाने सख्त हो जाएं और पौधा पीला पड़ जाए, तब कटाई करें।</p>
+                        </div>
+                    `},
+                    // ---------- मक्का (Maize) - विस्तृत जानकारी ----------
+                    { name: '🌽 मक्का (Maize) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🌽 मक्का की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">मिट्टी:</span> ढीली, अच्छे वातन एवं जल निकासी वाली दोमट मिट्टी। pH 5.8 – 6.8 [citation:5].</p>
+                            <p><span class="font-semibold">खेत की तैयारी:</span> प्राथमिक जुताई (पिछली फसल के बाद) और द्वितीयक जुताई (बुवाई से पहले) करें। मिट्टी को भुरभुरा बनाएं [citation:5].</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> खरीफ में जून-जुलाई, रबी में अक्टूबर-नवंबर।</p>
+                            <p><span class="font-semibold">बीज दर:</span> 18-20 किलो प्रति हेक्टेयर (संकर किस्म)।</p>
+                            <p><span class="font-semibold">बुवाई की विधि:</span> लाइन से बुवाई, कतार से कतार 60 सेमी, पौधे से पौधे 20-25 सेमी [citation:5].</p>
+                            <p><span class="font-semibold">खाद:</span> नाइट्रोजन 120 किलो, फॉस्फोरस 60 किलो, पोटाश 40 किलो प्रति हेक्टेयर।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> फूल आने और दाना भरने के समय नमी का तनाव न होने दें।</p>
+                            <p><span class="font-semibold">खरपतवार नियंत्रण:</span> निराई-गुड़ाई या एट्राजीन का छिड़काव।</p>
+                            <p><span class="font-semibold">कटाई:</span> जब भूसी सूखकर पीली पड़ जाए और दाने सख्त हो जाएं।</p>
+                        </div>
+                    `},
+                    // ---------- दालें (Pulses - सामान्य) ----------
+                    { name: '🫘 दालें (Pulses) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🫘 दालों (अरहर, चना, मूंग, उड़द, मसूर) की खेती का सामान्य तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> ठंडी और शुष्क जलवायु, तापमान 15-22°C [citation:1].</p>
+                            <p><span class="font-semibold">मिट्टी:</span> अच्छी निकासी वाली दोमट मिट्टी, pH 6.0-7.5. नमकीन या जलजमाव वाली मिट्टी अनुपयुक्त [citation:1][citation:6].</p>
+                            <p><span class="font-semibold">खेत की तैयारी:</span> भारी मिट्टी में गहरी जुताई, हल्की मिट्टी में कम जुताई। खेत समतल होना चाहिए [citation:6].</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> मध्य अक्टूबर से नवंबर का पहला पखवाड़ा [citation:6].</p>
+                            <p><span class="font-semibold">बीज दर:</span> 12-15 किलो प्रति एकड़ (मसूर), 10-12 किलो प्रति एकड़ (चना) [citation:6].</p>
+                            <p><span class="font-semibold">बीज उपचार:</span> कैप्टान या थीरम 3 ग्राम प्रति किलो बीज। राइजोबियम कल्चर से उपचार भी लाभदायक [citation:6].</p>
+                            <p><span class="font-semibold">बुवाई की गहराई:</span> 3-4 सेमी [citation:6].</p>
+                            <p><span class="font-semibold">पंक्ति दूरी:</span> 22 सेमी (सामान्य), देर से बुवाई में 20 सेमी [citation:6].</p>
+                            <p><span class="font-semibold">खाद:</span> नाइट्रोजन 5 किलो (12 किलो यूरिया), फास्फोरस 8 किलो (50 किलो सिंगल सुपर फास्फेट) प्रति एकड़ बुवाई के समय डालें [citation:6].</p>
+                            <p><span class="font-semibold">सिंचाई:</span> दालों को अधिक पानी की आवश्यकता नहीं होती। केवल तभी सींचें जब मिट्टी की ऊपरी परत सूख जाए। फूल आने और फली बनने के समय सिंचाई आवश्यक [citation:1].</p>
+                            <p><span class="font-semibold">खरपतवार नियंत्रण:</span> 25-30 दिन में निराई-गुड़ाई करें या बेड प्लांटिंग विधि अपनाएं [citation:3].</p>
+                            <p><span class="font-semibold">कटाई:</span> जब 80% फलियाँ पककर भूरी हो जाएं और पत्तियाँ झड़ जाएं, तब फसल काट लें।</p>
+                        </div>
+                    `},
+                    // ---------- मूंगफली (Groundnut) ----------
+                    { name: '🥜 मूंगफली (Groundnut) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🥜 मूंगफली की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> उष्ण एवं आर्द्र जलवायु, 20-30°C तापमान।</p>
+                            <p><span class="font-semibold">मिट्टी:</span> हल्की रेतीली दोमट मिट्टी जिसमें जल निकासी अच्छी हो।</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> खरीफ में जून-जुलाई, रबी में जनवरी-फरवरी।</p>
+                            <p><span class="font-semibold">बीज दर:</span> 80-100 किलो प्रति हेक्टेयर (भुट्टा सहित)।</p>
+                            <p><span class="font-semibold">बीज उपचार:</span> कार्बेन्डाजिम 2 ग्राम प्रति किलो बीज।</p>
+                            <p><span class="font-semibold">बुवाई की विधि:</span> लाइन से बुवाई, कतार से कतार 30-45 सेमी, पौधे से पौधे 10-15 सेमी।</p>
+                            <p><span class="font-semibold">खाद:</span> 20 किलो नाइट्रोजन, 40 किलो फास्फोरस, 40 किलो पोटाश प्रति हेक्टेयर।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> फूल आने और फलियाँ बनने के समय नमी का तनाव न होने दें।</p>
+                            <p><span class="font-semibold">कटाई:</span> जब पत्तियाँ पीली पड़कर सूखने लगें और फलियाँ भीतर से सख्त हो जाएं।</p>
+                        </div>
+                    `},
+                    // ---------- प्याज (Onion) ----------
+                    { name: '🧅 प्याज (Onion) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🧅 प्याज की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> समशीतोष्ण जलवायु, 15-25°C तापमान।</p>
+                            <p><span class="font-semibold">मिट्टी:</span> दोमट या बलुई दोमट मिट्टी जिसमें जैविक पदार्थ अधिक हो।</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> खरीफ (जुलाई-अगस्त), लेट खरीफ (सितम्बर-अक्टूबर), रबी (अक्टूबर-नवम्बर)।</p>
+                            <p><span class="font-semibold">बीज दर:</span> 8-10 किलो प्रति हेक्टेयर (नर्सरी के लिए)।</p>
+                            <p><span class="font-semibold">नर्सरी तैयार करना:</span> 2-3 मीटर लम्बी क्यारियाँ बनाकर बीज बोएं, 25-30 दिन बाद रोपाई करें।</p>
+                            <p><span class="font-semibold">रोपाई की दूरी:</span> पंक्तियों के बीच 15 सेमी, पौधों के बीच 7-10 सेमी।</p>
+                            <p><span class="font-semibold">खाद:</span> गोबर की खाद 20-25 टन, नाइट्रोजन 80-100 किलो, फास्फोरस 40-50 किलो, पोटाश 40-50 किलो प्रति हेक्टेयर।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> शुरूआत में हल्की-हल्की सिंचाई, कंद बनते समय नमी बनाए रखें।</p>
+                            <p><span class="font-semibold">कटाई:</span> जब पत्तियाँ गिरकर पीली पड़ जाएं और गलन शुरू हो जाए।</p>
+                        </div>
+                    `},
+                    // ---------- आलू (Potato) ----------
+                    { name: '🥔 आलू (Potato) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🥔 आलू की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> ठंडी जलवायु, 15-25°C तापमान।</p>
+                            <p><span class="font-semibold">मिट्टी:</span> बलुई दोमट मिट्टी जिसमें जल निकासी अच्छी हो, pH 5.5-6.5।</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> उत्तरी भारत में अक्टूबर-नवम्बर, पहाड़ी क्षेत्रों में फरवरी-मार्च।</p>
+                            <p><span class="font-semibold">बीज दर:</span> 20-25 क्विंटल प्रति हेक्टेयर (कंद)।</p>
+                            <p><span class="font-semibold">बीज उपचार:</span> कंदों को 0.5% बाविस्टीन के घोल में 20 मिनट उपचारित करें।</p>
+                            <p><span class="font-semibold">बुवाई की विधि:</span> कतार से कतार 50-60 सेमी, कंद से कंद 15-20 सेमी की दूरी पर बोएं।</p>
+                            <p><span class="font-semibold">खाद:</span> गोबर की खाद 20-25 टन, नाइट्रोजन 120-150 किलो, फास्फोरस 80-100 किलो, पोटाश 100-120 किलो प्रति हेक्टेयर।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> शुरूआत में हल्की सिंचाई, कंद बनते समय नियमित सिंचाई करें।</p>
+                            <p><span class="font-semibold">कटाई:</span> बुवाई के 90-120 दिन बाद जब पौधे सूखकर पीले पड़ जाएं।</p>
+                        </div>
+                    `},
+                    // ---------- टमाटर (Tomato) ----------
+                    { name: '🍅 टमाटर (Tomato) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🍅 टमाटर की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> गर्म समशीतोष्ण, 15-27°C तापमान।</p>
+                            <p><span class="font-semibold">मिट्टी:</span> बलुई दोमट मिट्टी, pH 6.5-7.0।</p>
+                            <p><span class="font-semibold">बुवाई का समय:</span> खरीफ (जून-जुलाई), रबी (अक्टूबर-नवम्बर), ग्रीष्म (जनवरी-फरवरी)।</p>
+                            <p><span class="font-semibold">नर्सरी तैयार करना:</span> उठी हुई क्यारियों में बीज बोएं, 25-30 दिन बाद रोपाई करें।</p>
+                            <p><span class="font-semibold">बीज दर:</span> 400-500 ग्राम प्रति हेक्टेयर।</p>
+                            <p><span class="font-semibold">रोपाई की दूरी:</span> कतार से कतार 60-75 सेमी, पौधे से पौधे 45-60 सेमी।</p>
+                            <p><span class="font-semibold">खाद:</span> गोबर की खाद 20-25 टन, नाइट्रोजन 100-120 किलो, फास्फोरस 50-60 किलो, पोटाश 50-60 किलो प्रति हेक्टेयर।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> फूल आने और फल बनने के समय नियमित सिंचाई आवश्यक।</p>
+                            <p><span class="font-semibold">कटाई:</span> रोपाई के 60-70 दिन बाद फल तोड़ने लायक हो जाते हैं।</p>
+                        </div>
+                    `},
+                    // ---------- केला (Banana) ----------
+                    { name: '🍌 केला (Banana) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🍌 केले की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> उष्ण एवं आर्द्र जलवायु, 15-35°C तापमान।</p>
+                            <p><span class="font-semibold">मिट्टी:</span> गहरी, जैविक पदार्थ से भरपूर दोमट मिट्टी, जल निकासी उचित हो।</p>
+                            <p><span class="font-semibold">रोपण का समय:</span> फरवरी-मार्च (वर्षा सिंचित) या जुलाई-अगस्त (वर्षा आधारित)।</p>
+                            <p><span class="font-semibold">रोपण सामग्री:</span> स्वस्थ, रोगरहित पौधे या प्रकंद (राइजोम)।</p>
+                            <p><span class="font-semibold">रोपण की दूरी:</span> 2 मी x 2 मी (सघन) से 2.5 मी x 2.5 मी (सामान्य)।</p>
+                            <p><span class="font-semibold">खाद:</span> गोबर की खाद 10-15 किलो, नाइट्रोजन 200 ग्राम, फास्फोरस 60 ग्राम, पोटाश 300 ग्राम प्रति पौधा।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> 7-10 दिन के अंतराल पर सिंचाई। गर्मियों में अधिक सिंचाई की आवश्यकता।</p>
+                            <p><span class="font-semibold">कटाई:</span> रोपण के 10-14 महीने बाद जब फल पूरी तरह विकसित हो जाए और कोणीय आकार गोल होने लगे।</p>
+                        </div>
+                    `},
+                    // ---------- आम (Mango) ----------
+                    { name: '🥭 आम (Mango) - सम्पूर्ण जानकारी', content: `
+                        <div class="space-y-4">
+                            <p class="font-bold text-lg">🥭 आम की खेती का सम्पूर्ण तरीका</p>
+                            <p><span class="font-semibold">जलवायु:</span> उष्ण एवं शुष्क जलवायु, 24-30°C तापमान।</p>
+                            <p><span class="font-semibold">मिट्टी:</span> गहरी, अच्छे जल निकास वाली दोमट मिट्टी, pH 5.5-7.5।</p>
+                            <p><span class="font-semibold">रोपण का समय:</span> जुलाई-अगस्त (वर्षा ऋतु) या फरवरी-मार्च (वसंत ऋतु)।</p>
+                            <p><span class="font-semibold">रोपण सामग्री:</span> कलम या ग्राफ्टेड पौधे।</p>
+                            <p><span class="font-semibold">रोपण की दूरी:</span> 8 मी x 8 मी से 10 मी x 10 मी।</p>
+                            <p><span class="font-semibold">गड्ढे की तैयारी:</span> 1 मी x 1 मी x 1 मी के गड्ढे खोदकर धूप में रखें, फिर उसमें गोबर की खाद, सुपर फास्फेट और मिट्टी भरें।</p>
+                            <p><span class="font�ont-bold">खाद:</span> पेड़ की उम्र के अनुसार गोबर की खाद 20-50 किलो, नाइट्रोजन 500 ग्राम-1 किलो, फास्फोरस 250-500 ग्राम, पोटाश 500 ग्राम-1 किलो प्रति पेड़।</p>
+                            <p><span class="font-semibold">सिंचाई:</span> फूल आने और फल बनने के समय नमी का तनाव न होने दें।</p>
+                            <p><span class="font-semibold">कटाई:</span> फलों का रंग बदलने और गंध आने पर हाथ से तोड़ें।</p>
+                        </div>
+                    `},
+                    // ... इसी तरह अन्य फसलों के लिए विस्तृत जानकारी जोड़ी जा सकती है ...
+                ]
+            },
+            'SchemesActivity': { 
+                title: 'सरकारी योजनाएं', 
+                items: [
+                    { name: '✨ AI योजना खोजक (Helper)', isAi: true, mode: 'scheme', welcome: 'अपनी जानकारी दें (जैसे: मेरे पास 2 एकड़ जमीन है) ताकि सही योजना बता सकूँ ✨' },
+                    { name: 'प्रधानमंत्री किसान सम्मान निधि (PM-KISAN)', content: 'पात्र किसानों को सालाना 6000 रुपये (2000-2000 की तीन किस्तें) सीधे बैंक खाते में। आवेदन के लिए नजदीकी CSC या कृषि विभाग से संपर्क करें।' },
+                    { name: 'प्रधानमंत्री फसल बीमा योजना (PMFBY)', content: 'प्राकृतिक आपदा, कीट रोग से फसल हानि पर बीमा कवर। प्रीमियम: खरीफ 2%, रबी 1.5% (किसान का हिस्सा)। बैंक/बीमा कंपनी से जानकारी लें।' },
+                    // ... other schemes ...
+                ]
+            },
+            'HealthActivity': { 
+                title: 'स्वास्थ्य सेवा', 
+                items: [
+                    { name: 'आपातकालीन संपर्क', content: 'एम्बुलेंस 108, पशु एम्बुलेंस 1962, नजदीकी स्वास्थ्य केंद्र का पता पंचायत से लें।' },
+                    { name: 'प्राथमिक स्वास्थ्य केंद्र (PHC)', content: 'आपके नजदीकी PHC पर मुफ्त इलाज, दवाएं, टीकाकरण। संचालन: सुबह 8 से रात 8 बजे तक।' },
+                    // ... other health items ...
+                ]
+            },
+            'LoansActivity': { 
+                title: 'लोन और बैंकिंग', 
+                items: [
+                    { name: 'किसान क्रेडिट कार्ड (KCC)', content: 'फसल ऋण के लिए KCC बनवाएं। 3 लाख तक का अल्पकालीन ऋण 4% ब्याज पर। बैंक में आवेदन करें।' },
+                    { name: 'कृषि यंत्र ऋण (ट्रैक्टर, थ्रेशर)', content: 'ट्रैक्टर, थ्रेशर, कंबाइन हार्वेस्टर खरीदने के लिए 5-10 लाख तक ऋण, ब्याज दर 7-9%। नाबार्ड से सम्बद्ध बैंकों में आवेदन।' },
+                    // ... other loan items ...
+                ]
+            }
+        };
+
+        function startActivity(id) {
+            if (id === 'AI_Assistant') {
+                openAiAssistant('general', translations[currentLanguage]?.aiIntro || 'Hello! I am your GramSahayak AI. Write your problem below.');
+                return;
+            }
+
+            if(id === 'WeatherActivity') {
+                document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+                document.getElementById('WeatherActivity').classList.add('active');
+                activityStack.push('WeatherActivity');
+                return;
+            }
+
+            const data = pageData[id];
+            if(data) {
+                showSubItems(id, data.title, data.items);
+                return;
+            }
+
+            // sub-item click
+            let foundItem = null;
+            let parentTitle = '';
+            for (let key in pageData) {
+                const items = pageData[key].items;
+                const match = items.find(item => item.name === id);
+                if (match) {
+                    foundItem = match;
+                    parentTitle = pageData[key].title;
+                    break;
+                }
+            }
+
+            if (foundItem) {
+                if (foundItem.isAi) {
+                    openAiAssistant(foundItem.mode, foundItem.welcome);
+                } else {
+                    showDetailContent(parentTitle, foundItem.name, foundItem.content);
+                }
+            } else {
+                alert('जानकारी उपलब्ध नहीं है');
+            }
+        }
+
+        function showSubItems(activityId, title, items) {
+            document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+            const detail = document.getElementById('DetailView');
+            document.getElementById('detail-title').innerText = title;
+            
+            let html = '';
+            items.forEach(item => {
+                const isAi = item.isAi;
+                const itemName = item.name;
+                html += `
+                <div class="card-material !mx-0 mb-3 flex justify-between items-center ${isAi ? 'border-indigo-200 bg-indigo-50' : ''}" 
+                     onclick="startActivity('${itemName.replace(/'/g, "\\'")}')">
+                    <span class="font-bold ${isAi ? 'text-indigo-800' : ''}">${itemName}</span>
+                    <span class="text-gray-300">❯</span>
+                </div>
+                `;
+            });
+
+            document.getElementById('detail-content').innerHTML = html;
+            detail.classList.add('active');
+            activityStack.push('DetailView');
+        }
+
+        function showDetailContent(parentTitle, title, content) {
+            document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+            const detail = document.getElementById('DetailView');
+            document.getElementById('detail-title').innerText = title;
+            document.getElementById('detail-content').innerHTML = `
+                <div class="card-material !mx-0 bg-white p-6">
+                    <p class="text-lg font-bold mb-4">${title}</p>
+                    <div class="text-gray-700 leading-relaxed space-y-2">${content}</div>
+                </div>
+            `;
+            detail.classList.add('active');
+            activityStack.push('DetailView');
+        }
+
+        function openAiAssistant(mode, welcomeMsg) {
+            currentAiMode = mode;
+            document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+            document.getElementById('AIActivity').classList.add('active');
+            document.getElementById('ai-title').innerText = mode === 'crop' ? '✨ फसल निदान' : (mode === 'scheme' ? '✨ योजना सहायक' : '✨ AI सहायक');
+            document.getElementById('ai-intro-text').innerText = welcomeMsg;
+            document.getElementById('ai-chat-history').innerHTML = `<div class="chat-bubble ai-msg">${welcomeMsg}</div>`;
+            activityStack.push('AIActivity');
+        }
+
+async function callAI(prompt, systemInstruction) {
+    try {
+        const res = await fetch("http://127.0.0.1:5000/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt, systemInstruction })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            // Show error from backend
+            return "❌ " + (data.error || "Unknown error");
+        }
+        return data.reply || "उत्तर प्राप्त नहीं हुआ।";
+    } catch (err) {
+        return "नेटवर्क समस्या: " + err.message;
+    }
+}
+
+document.getElementById("ai-submit-btn").onclick = async () => {
+    const input = document.getElementById("ai-input");
+    const history = document.getElementById("ai-chat-history");
+    const text = input.value.trim();
+    if (!text) return;
+
+    history.innerHTML += `<div class="chat-bubble user-msg">${text}</div>`;
+    input.value = "";
+
+    const loadingId = "l" + Date.now();
+    history.innerHTML += `<div id="${loadingId}" class="chat-bubble ai-msg loading">AI सोच रहा है...</div>`;
+
+    const systemPrompt =
+        "You are GramSahayak AI. Help Indian farmers in simple Hindi.";
+
+    const reply = await callAI(text, systemPrompt);
+
+    document.getElementById(loadingId).remove();
+    history.innerHTML += `<div class="chat-bubble ai-msg">${reply}</div>`;
+};
+
+
+
+
+// Back navigation
+function onBackPressed() {
+    if (activityStack.length > 1) {
+        activityStack.pop(); // remove current
+        const previous = activityStack[activityStack.length - 1];
+        document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+        document.getElementById(previous).classList.add('active');
+    } else {
+        // If only MainActivity, stay there
+        document.querySelectorAll('.activity').forEach(a => a.classList.remove('active'));
+        document.getElementById('MainActivity').classList.add('active');
+        activityStack = ['MainActivity'];
+    }
+}
+
+// Switch main tab (home / AI assistant)
+function switchMainTab(activityId, btn) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    startActivity(activityId);
+}
+    </script>
+</body>
+</html>
